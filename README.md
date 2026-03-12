@@ -88,7 +88,7 @@ Follow these steps to set up the project locally:
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/Devesh102030/Paperfy
+git clone https://github.com/dimmu23/Paperfy
 cd paperfy
 
 # 2. Install dependencies
