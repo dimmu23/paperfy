@@ -40,7 +40,7 @@ export const RaycastMagicLinkEmail = ({
             </Link>
           </Text>
           <Text style={paragraph}>
-            The link will be only valid for next 24 hours. If you didn't request this, please ignore this email.
+            The link will be only valid for next 24 hours. If you didn&apos;t request this, please ignore this email.
           </Text>
         </Section>
         <Text style={paragraph}>

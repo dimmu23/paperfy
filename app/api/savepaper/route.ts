@@ -1,26 +1,13 @@
 import prisma from "@/app/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/app/lib/serverAuth";
-import {Queue} from "bullmq";
-//import IORedis from 'ioredis';
-import redis from "@/lib/redis";
+import { Queue } from "bullmq";
+import { redisConnection } from "@/lib/redis";
 
-// const connection = new IORedis("redis://default:BBEFuBpgdRcjapOtuuPsKVaihyxEZewS@turntable.proxy.rlwy.net:33985",{
-//     maxRetriesPerRequest: null
-// });
-
-// await connection.connect();
-
-const queue = new Queue("file-upload-queue",{
-    connection: redis
-});
-
-// const queue = new Queue("file-upload-queue",{
-//   connection:{
-//     host: process.env.REDIS_HOST || 'localhost',
-//     port: Number(process.env.REDIS_PORT) || 6379
-//   }
-// });
+const getQueue = () =>
+  new Queue("file-upload-queue", {
+    connection: redisConnection,
+  });
 
 
 export async function POST(req: NextRequest) {
@@ -46,7 +33,7 @@ export async function POST(req: NextRequest) {
             }
         })
 
-        await queue.add("process-pdf",{
+        await getQueue().add("process-pdf",{
             paperId: paper.id,
             pdfUrl
         })
@@ -61,6 +48,8 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({
             success: false,
             message: "Error Saving paper"
+        },{
+            status: 500
         })
     }
 }

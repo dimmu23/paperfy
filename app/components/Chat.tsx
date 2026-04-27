@@ -8,7 +8,7 @@ export function Chat({ paperId, userId }: { paperId: string, userId: string }) {
   const [messages, setmessages] = useState<{ role: "user" | "ai"; text: string }[]>([]);
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const [initialized, setInitialized] = useState(false);
+  const [initialized] = useState(false);
 
   const placeholders = [
     "Ask anything about this paper...",

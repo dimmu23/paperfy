@@ -1,18 +1,15 @@
 "use client"
 import { DotLoader } from "@/app/components/DotLoader";
 import {
-  IconBrandGoogle,
   IconAlertCircle,
 } from "@tabler/icons-react";
 import React, { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 
 export default function ResetPassword(){
-    const router = useRouter();
     const [email,setemail] = useState("");
     const [sent, setSent] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -55,7 +52,7 @@ export default function ResetPassword(){
                     Trouble logging in?
                 </h2>
                 <p className="mt-2 max-w-sm text-sm text-neutral-600 dark:text-neutral-300">
-                    Enter your email and we'll send you a link to get back into your account.
+                    Enter your email and we&apos;ll send you a link to get back into your account.
                 </p>
 
                 <form className="my-8" onSubmit={handleSubmit}>

@@ -6,7 +6,6 @@ import { useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { DotLoader } from "@/app/components/DotLoader";
 import {
-  IconBrandGoogle,
   IconAlertCircle,
 } from "@tabler/icons-react";
 import { Label } from "@/components/ui/label";

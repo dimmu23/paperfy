@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import {
   IconBrandGoogle,
+  IconAlertCircle,
 } from "@tabler/icons-react";
 import { DotLoader } from "@/app/components/DotLoader";
 
@@ -18,13 +19,13 @@ export default function Signup() {
     const [name, setname] = useState("");
     const [email, setemail] = useState("");
     const [password, setpassword] = useState("");
-    //const [error,seterror] = useState("");
+    const [error,seterror] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
 
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
         setLoading(true);
-        //seterror("");
+        seterror(null);
         
         try{
           await axios.post("/api/auth/custom/signup",{
@@ -33,19 +34,35 @@ export default function Signup() {
               password
           })
           
-          await signIn("email", {
+          const credentialsSignIn = await signIn("credentials", {
             email,
-            callbackUrl: "/home",
+            password,
             redirect: false
           });
 
-          router.push("/check-email")
+          if (credentialsSignIn?.error || credentialsSignIn?.ok === false) {
+            seterror("Account created, but automatic login failed. Please try logging in.");
+            return;
+          }
 
-        }catch(err){
-            console.log(err);
-            //seterror(err.response?.data?.message || err.message || "Something went wrong")
+          router.push("/home")
+
+        }catch(err: unknown){
+            console.error("Signup error:", err);
+            if (axios.isAxiosError(err)) {
+              seterror(err.response?.data?.message || err.message || "Something went wrong");
+            } else {
+              seterror("Something went wrong");
+            }
+        }finally {
+          setLoading(false);
         }
     }
+
+    const handleGoogleSignIn = async () => {
+      seterror(null);
+      await signIn("google",{ callbackUrl: "/home" });
+    };
 
   return (
      <div className="flex justify-center items-center h-screen">
@@ -58,6 +75,13 @@ export default function Signup() {
           </p>
 
           <form className="my-8" onSubmit={handleSubmit}>
+            {error && (
+              <div className="mb-4 flex items-center space-x-2 rounded-md border border-red-200 bg-red-50 p-3 dark:border-red-800 dark:bg-red-900/20">
+                <IconAlertCircle className="h-4 w-4 flex-shrink-0 text-red-600 dark:text-red-400" />
+                <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+              </div>
+            )}
+
             <LabelInputContainer className="mb-4">
                 <Label htmlFor="firstname">Name</Label>
                 <Input onChange={(e)=> setname(e.target.value)} id="firstname" placeholder="Tyler Mathews" type="text" />
@@ -92,9 +116,9 @@ export default function Signup() {
 
             <div className="flex flex-col space-y-4">
               <button
-                onClick={()=>signIn("google",{ callbackUrl: "/home" })}
+                onClick={handleGoogleSignIn}
                 className="group/btn shadow-input relative flex h-10 w-full items-center justify-start space-x-2 rounded-md bg-gray-50 px-4 font-medium text-black dark:bg-zinc-900 dark:shadow-[0px_0px_1px_1px_#262626]"
-                type="submit"
+                type="button"
               >
                 <IconBrandGoogle className="h-4 w-4 text-neutral-800 dark:text-neutral-300" />
                 <span className="text-sm text-neutral-700 dark:text-neutral-300">

@@ -11,49 +11,68 @@ export default function Overview({ paperId}: { paperId: string }) {
   const [loading,setLoading] = useState(true);
 
   useEffect(() => {
-  let isMounted = true;
-  let retries = 0;
-  let maxRetries = 10; // Stop after 10 attempts (20 seconds)
-  let timeoutId: NodeJS.Timeout;
+    let cancelled = false;
+    let timeoutId: NodeJS.Timeout | undefined;
+    let retries = 0;
+    const maxRetries = 10;
 
-  const fetchOverview = async () => {
-    const tempOverview = localStorage.getItem(`Markedoverview-${paperId}`);
-    if(tempOverview){
-      setoverview(tempOverview);    
-      setLoading(false);
-    }
-    else{
+    const fetchOverview = async () => {
+      const cachedOverview = localStorage.getItem(`Markedoverview-${paperId}`);
+
+      if (cachedOverview) {
+        if (!cancelled) {
+          setoverview(cachedOverview);
+          setLoading(false);
+        }
+        return;
+      }
+
       try {
         const res = await axios.get("/api/getoverview", {
           params: { paperId },
         });
 
-        if (res.data.overview && isMounted) {
-          localStorage.setItem(`Markedoverview-${paperId}`, res.data.overview);
-          setoverview(res.data.overview);
+        const nextOverview = res.data.overview;
+
+        if (nextOverview && !cancelled) {
+          localStorage.setItem(`Markedoverview-${paperId}`, nextOverview);
+          setoverview(nextOverview);
           setLoading(false);
-        } else if (isMounted && retries < maxRetries) {
+          return;
+        }
+
+        if (!cancelled && retries < maxRetries) {
           retries++;
           timeoutId = setTimeout(fetchOverview, 2000);
-        } else {
-          // Stop retrying after maxRetries
+          return;
+        }
+
+        if (!cancelled) {
           setLoading(false);
           console.warn("Overview not available after max retries.");
         }
-      } catch (error) {
-        console.error("Error fetching overview:", error);
-        setLoading(false);
+      } catch {
+        if (!cancelled && retries < maxRetries) {
+          retries++;
+          timeoutId = setTimeout(fetchOverview, 2000);
+          return;
+        }
+
+        if (!cancelled) {
+          setLoading(false);
+          console.warn("Overview fetch failed after max retries.");
+        }
       }
-    }
-  };
+    };
 
-  fetchOverview();
+    setLoading(true);
+    fetchOverview();
 
-  return () => {
-    isMounted = false;
-    clearTimeout(timeoutId);
-  };
-}, [paperId]);
+    return () => {
+      cancelled = true;
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [paperId]);
 
 
 

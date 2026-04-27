@@ -26,8 +26,10 @@ export async function GET(req: NextRequest){
     }
     catch(err){
         console.log(err);
-        NextResponse.json({
+        return NextResponse.json({
             message: "Error fetching paper"
+        }, {
+            status: 500
         })
     }
 

@@ -33,12 +33,18 @@ export function MyPaperDashboard({userId,page}:{userId: string, page: number}){
                 params: { userId, page, limit },
                 timeout: 10000 // 10 second timeout
             });
-            setpapers(res.data.papers);
-            settotalPages(res.data.totalPages);
-            setcurrentPage(res.data.currentPage);
+
+            if (!res.data?.success) {
+                throw new Error(res.data?.message || "Failed to load papers");
+            }
+
+            setpapers(Array.isArray(res.data.papers) ? res.data.papers : []);
+            settotalPages(Number(res.data.totalPages) || 0);
+            setcurrentPage(Number(res.data.currentPage) || 1);
         } catch (err) {
             console.error("Failed to fetch papers:", err);
             setError("Failed to load papers. Please try again.");
+            setpapers([]);
         } finally {
             setloading(false);
         }

@@ -11,6 +11,7 @@ import { RaycastMagicLinkEmail } from "@/app/components/email-template";// adjus
 import { Resend } from "resend";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
+const emailFrom = process.env.EMAIL_FROM || "Paperfy <onboarding@resend.dev>";
 
 // Define proper types for credentials
 interface Credentials {
@@ -58,21 +59,27 @@ export const NEXT_AUTH_CONFIG: AuthOptions = {
         }),  
         GoogleProvider({
             clientId: process.env.GOOGLE_CLIENT_ID || "",
-            clientSecret: process.env.GOOGLE_CLIENT_SECRET || ""
+            clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
+            allowDangerousEmailAccountLinking: true,
         }),
         EmailProvider({
             server: {},
-            from: "Paperfy <paperfy@deveshparyani.tech>",
+            from: emailFrom,
             maxAge: 60 * 60 * 24, 
             async sendVerificationRequest({ identifier, url, provider }) {
-                console.log("recieved");
+                console.log("Sending verification email");
                 try {
-                    await resend.emails.send({
+                    const result = await resend.emails.send({
                         from: provider.from as string,
-                        to: ["deveshparyani17@gmail.com"],
+                        to: [identifier],
                         subject: "Your Paperfy Verification Link",
                         react: RaycastMagicLinkEmail({ magicLink: url }),
                     });
+
+                    if (result.error) {
+                        console.error("Resend rejected verification email:", result.error);
+                        throw new Error(result.error.message);
+                    }
                 } catch (error) {
                     console.error("Error sending verification email:", error);
                     throw new Error("Unable to send verification email");

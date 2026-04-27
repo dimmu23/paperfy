@@ -72,7 +72,7 @@ export function SidebarDemo({children}:{children: ReactNode}) {
                 href: "#",
                 icon: (
                   <Image
-                    src= {session.user?.image || "/default-avatar.jpeg"}
+                    src= {session.user?.image || "/default-avatar.jpg"}
                     className="h-7 w-7 shrink-0 rounded-full"
                     width={50}
                     height={50}
@@ -143,4 +143,3 @@ const Dashboard = ({children}:{children: ReactNode}) => {
 };
 
 //flex h-full w-full flex-1 flex-col rounded-tl-2xl border border-neutral-200 bg-white md:p-10 dark:border-neutral-700 dark:bg-neutral-900
-

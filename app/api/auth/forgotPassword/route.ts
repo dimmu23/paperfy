@@ -5,6 +5,7 @@ import { Resend } from "resend";
 import RaycastMagicLinkEmail from "@/app/components/ResetPassword-email-template";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
+const emailFrom = process.env.EMAIL_FROM || "Paperfy <onboarding@resend.dev>";
 
 export async function POST(req: Request) {
   const { email } = await req.json();
@@ -29,8 +30,8 @@ export async function POST(req: Request) {
 
         const resetLink = `${process.env.NEXT_PUBLIC_APP_URL}/auth/password/reset?token=${token}`;
 
-        const { data, error } = await resend.emails.send({
-            from: "Paperfy <paperfy@deveshparyani.tech>",
+        const { error } = await resend.emails.send({
+            from: emailFrom,
             to: email,
             subject: "Reset Password",
             react: RaycastMagicLinkEmail({magicLink: resetLink}),

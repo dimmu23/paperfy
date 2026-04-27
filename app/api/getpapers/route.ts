@@ -10,7 +10,10 @@ export async function GET(req: NextRequest){
 
         if(!page || !limit || !userId ){
             return NextResponse.json({
+                success: false,
                 message: "Parameters missing"
+            },{
+                status: 400
             })
         }
 
@@ -19,7 +22,10 @@ export async function GET(req: NextRequest){
 
         if(!userId){
             return NextResponse.json({
+                success: false,
                 message: "Parameters Missing"
+            },{
+                status: 400
             })
         }
 
@@ -39,6 +45,7 @@ export async function GET(req: NextRequest){
         })
 
         return NextResponse.json({
+            success: true,
             papers,
             totalCount,
             totalPages: Math.ceil(totalCount/PageSize),
@@ -48,7 +55,10 @@ export async function GET(req: NextRequest){
     catch(err){
         console.log(err);
         return NextResponse.json({
+            success: false,
             message: "Error fetching papers"
+        },{
+            status: 500
         })        
     }
 }

@@ -3,7 +3,7 @@
 import { createClient } from "@deepgram/sdk";
 import { NextRequest, NextResponse } from "next/server";
 
-const deepgram = createClient("56884b7f29831b4056f47ecd7c30ccf558194167");
+const deepgram = createClient(process.env.DEEPGRAM_API_KEY!);
 
 export const config = {
   api: {

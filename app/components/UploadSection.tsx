@@ -28,8 +28,13 @@ export default function Upload() {
         <UploadDropzone<OurFileRouter, "paperUpload">
           endpoint="paperUpload"
           onClientUploadComplete={async (res) => {
-            const file = res[0];
+            const file = res?.[0];
+
             try {
+              if (!file) {
+                throw new Error("Upload completed without file data");
+              }
+
               setLoading(true);
               const response = await axios.post("/api/savepaper", {
                 title: file.name,
@@ -38,13 +43,19 @@ export default function Upload() {
 
               console.log(response);
 
-              const paperId = response.data.paper.id;
+              if (!response.data?.success) {
+                throw new Error(response.data?.message || "Paper save failed");
+              }
+
+              const paperId = response.data?.paper?.id;
               if (!paperId) throw new Error("Paper ID missing");
 
               router.push(`/paper/${paperId}`);
             } catch (err) {
               alert("Upload failed");
               console.error(err);
+            } finally {
+              setLoading(false);
             }
           }}
           onUploadError={(error: Error) => {
@@ -71,5 +82,3 @@ export default function Upload() {
     </div>
   );
 }
-
-

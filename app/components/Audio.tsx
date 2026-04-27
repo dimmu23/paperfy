@@ -17,7 +17,8 @@ export default function OverviewAudio({ paperId }: OverviewAudioProps) {
   const [duration, setDuration] = useState(0);
   const audioRef = useRef<HTMLAudioElement>(null);
   const progressBarRef = useRef<HTMLDivElement>(null);
-  const [audioLoaded, setAudioLoaded] = useState(false);
+  const animationFrameRef = useRef<number | null>(null);
+  const wasPlayingBeforeSeekRef = useRef(false);
   const [overview, setOverview] = useState("");
 
   const formatTime = (time: number) => {
@@ -27,7 +28,7 @@ export default function OverviewAudio({ paperId }: OverviewAudioProps) {
     return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
   };
 
-  const { startUpload, isUploading } = useUploadThing("audioUploader");
+  const { startUpload } = useUploadThing("audioUploader");
 
 
   const fetchAudioAndText = useCallback(async () => {
@@ -103,6 +104,7 @@ export default function OverviewAudio({ paperId }: OverviewAudioProps) {
         console.log("Upload successful:", uploadedUrl);
 
         setAudioUrl(uploadedUrl);
+        localStorage.setItem(`audioUrl-${paperId}`, uploadedUrl);
         
         // Step 4: Save to database
         console.log("Saving to database...");
@@ -118,18 +120,20 @@ export default function OverviewAudio({ paperId }: OverviewAudioProps) {
     } finally {
       setLoading(false);
     }
-  }, [paperId]);
+  }, [paperId, startUpload]);
 
 
   const jumpAhead = () => {
     if (audioRef.current) {
       audioRef.current.currentTime += 10;
+      setCurrentTime(audioRef.current.currentTime);
     }
   };
 
   const jumpBack = () => {
     if (audioRef.current) {
       audioRef.current.currentTime -= 10;
+      setCurrentTime(audioRef.current.currentTime);
     }
   };
 
@@ -152,17 +156,53 @@ export default function OverviewAudio({ paperId }: OverviewAudioProps) {
     setIsPlaying(!isPlaying);
   };
 
-  const handleProgressBarClick = (e: React.MouseEvent<HTMLDivElement>) => {
+  const seekToClientX = useCallback((clientX: number) => {
     if (!audioRef.current || !progressBarRef.current || !duration) return;
-    
+
     const progressBar = progressBarRef.current;
     const rect = progressBar.getBoundingClientRect();
-    const clickPosition = e.clientX - rect.left;
+    const clickPosition = clientX - rect.left;
     const progressBarWidth = rect.width;
     const seekPercentage = Math.max(0, Math.min(1, clickPosition / progressBarWidth));
     const seekTime = seekPercentage * duration;
-    
+
     audioRef.current.currentTime = seekTime;
+    setCurrentTime(seekTime);
+  }, [duration]);
+
+  const handleProgressBarClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    seekToClientX(e.clientX);
+  };
+
+  const handleSeekPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!audioRef.current || !duration) return;
+
+    e.preventDefault();
+    e.currentTarget.setPointerCapture(e.pointerId);
+    wasPlayingBeforeSeekRef.current = !audioRef.current.paused;
+    audioRef.current.pause();
+    seekToClientX(e.clientX);
+  };
+
+  const handleSeekPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!e.currentTarget.hasPointerCapture(e.pointerId)) return;
+    seekToClientX(e.clientX);
+  };
+
+  const handleSeekPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!audioRef.current) return;
+
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    }
+
+    seekToClientX(e.clientX);
+
+    if (wasPlayingBeforeSeekRef.current) {
+      audioRef.current.play().catch(error => {
+        console.error("Audio playback failed:", error);
+      });
+    }
   };
 
   useEffect(() => {
@@ -173,9 +213,7 @@ export default function OverviewAudio({ paperId }: OverviewAudioProps) {
     if (cachedOverview) setOverview(cachedOverview);
 
     if (!cachedUrl || !cachedOverview) {
-      fetchAudioAndText().then(() => setAudioLoaded(true));
-    } else {
-      setAudioLoaded(true);
+      fetchAudioAndText();
     }
   }, [paperId, fetchAudioAndText]);
 
@@ -193,6 +231,27 @@ export default function OverviewAudio({ paperId }: OverviewAudioProps) {
       setCurrentTime(audio.currentTime);
     };
 
+    const stopProgressTracking = () => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
+      }
+    };
+
+    const startProgressTracking = () => {
+      stopProgressTracking();
+
+      const trackProgress = () => {
+        setCurrentTime(audio.currentTime);
+
+        if (!audio.paused && !audio.ended) {
+          animationFrameRef.current = requestAnimationFrame(trackProgress);
+        }
+      };
+
+      animationFrameRef.current = requestAnimationFrame(trackProgress);
+    };
+
     const updateDuration = () => {
       console.log("Duration changed:", audio.duration);
       if (audio.duration && isFinite(audio.duration)) {
@@ -205,12 +264,20 @@ export default function OverviewAudio({ paperId }: OverviewAudioProps) {
     };
 
     const handleEnded = () => {
+      stopProgressTracking();
       setIsPlaying(false);
-      setCurrentTime(0);
+      setCurrentTime(audio.duration || 0);
     };
 
-    const handlePlay = () => setIsPlaying(true);
-    const handlePause = () => setIsPlaying(false);
+    const handlePlay = () => {
+      setIsPlaying(true);
+      startProgressTracking();
+    };
+    const handlePause = () => {
+      stopProgressTracking();
+      setIsPlaying(false);
+      updateTime();
+    };
 
     // Add event listeners
     audio.addEventListener('timeupdate', updateTime);
@@ -235,6 +302,7 @@ export default function OverviewAudio({ paperId }: OverviewAudioProps) {
       audio.removeEventListener('play', handlePlay);
       audio.removeEventListener('pause', handlePause);
       audio.removeEventListener('error', handleError);
+      stopProgressTracking();
     };
   }, [audioUrl]); // Re-run when audioUrl changes
 
@@ -273,8 +341,12 @@ export default function OverviewAudio({ paperId }: OverviewAudioProps) {
               <div className="relative">
                 <div 
                   ref={progressBarRef}
-                  className="bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden h-2 cursor-pointer"
+                  className="bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden h-2 cursor-pointer touch-none"
                   onClick={handleProgressBarClick}
+                  onPointerDown={handleSeekPointerDown}
+                  onPointerMove={handleSeekPointerMove}
+                  onPointerUp={handleSeekPointerUp}
+                  onPointerCancel={handleSeekPointerUp}
                 >
                   <div 
                     className="bg-cyan-500 dark:bg-cyan-400 h-full transition-all duration-100" 
@@ -283,11 +355,15 @@ export default function OverviewAudio({ paperId }: OverviewAudioProps) {
                 </div>
                 
                 <div 
-                  className="ring-cyan-500 dark:ring-cyan-400 ring-2 absolute top-1/2 -mt-2 w-4 h-4 flex items-center justify-center bg-white rounded-full shadow transition-all duration-100"
+                  className="ring-cyan-500 dark:ring-cyan-400 ring-2 absolute top-1/2 -mt-2 w-4 h-4 flex items-center justify-center bg-white rounded-full shadow transition-all duration-100 cursor-grab active:cursor-grabbing touch-none"
                   style={{ 
                     left: `calc(${progressPercentage}% - 8px)`,
                     transform: 'translateY(-50%)'
                   }}
+                  onPointerDown={handleSeekPointerDown}
+                  onPointerMove={handleSeekPointerMove}
+                  onPointerUp={handleSeekPointerUp}
+                  onPointerCancel={handleSeekPointerUp}
                 >
                   <div className="w-1.5 h-1.5 bg-cyan-500 dark:bg-cyan-400 rounded-full ring-1 ring-inset ring-slate-900/5" />
                 </div>

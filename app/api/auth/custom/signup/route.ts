@@ -9,13 +9,13 @@ export async function POST(req: NextRequest){
         console.log(body);
 
         const {name, email, password} = body;
+        const normalizedEmail = typeof email === "string" ? email.trim().toLowerCase() : "";
+        const trimmedName = typeof name === "string" ? name.trim() : "";
         
 
-        if(!name || !email || !password){
-            console.log(name,email,password);
-            
+        if(!trimmedName || !normalizedEmail || !password){
             return NextResponse.json({
-                message: "Missing feilds"
+                message: "Missing fields"
             },{
                 status: 400
             })
@@ -23,14 +23,14 @@ export async function POST(req: NextRequest){
 
         const existingUser = await prisma.user.findUnique({
             where:{
-                email: email
+                email: normalizedEmail
             }
         });
 
         if(existingUser){
             return(
                 NextResponse.json({
-                    message: "User already exits"
+                    message: "User already exists"
                 },{
                     status: 409
                 })
@@ -41,8 +41,8 @@ export async function POST(req: NextRequest){
 
         await prisma.user.create({
             data:{
-                name,
-                email,
+                name: trimmedName,
+                email: normalizedEmail,
                 password: hashPassword
             }
         })
@@ -52,9 +52,16 @@ export async function POST(req: NextRequest){
         },{status: 201})
     }
     catch(error){
-        console.log(error);
+        console.error("Signup failed:", error);
+
+        if (error instanceof Error && error.name === "PrismaClientInitializationError") {
+            return NextResponse.json({
+                message: "Database connection failed. Please check your Neon connection and try again."
+            },{status: 503})
+        }
+
         return NextResponse.json({
-            message: "Internel server error"
+            message: "Internal server error"
         },{status: 500})
     }
 

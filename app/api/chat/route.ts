@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { QdrantVectorStore } from "@langchain/qdrant";
 import { GoogleGenAI } from "@google/genai";
 
-const ai = new GoogleGenAI({ apiKey: "AIzaSyA97RkjY2bOWbmHZCW_pWZ0EKU2AenUY6Q" });
+const ai = new GoogleGenAI({ apiKey: process.env.GOOGLE_API_KEY! });
 
 export const GET = async (req: NextRequest) => {
   try {
@@ -21,9 +21,8 @@ export const GET = async (req: NextRequest) => {
     });
 
     const vectorStore = await QdrantVectorStore.fromExistingCollection(embeddings, {
-      //url: process.env.QDRANT_URL || "http://localhost:6333",
-      url: "https://c1ced9de-55f4-4ece-9fb5-12d97bf51073.us-west-2-0.aws.cloud.qdrant.io",
-      apiKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3MiOiJtIn0.Qkz1tL1HMpcIgXkHc8WzP9jJZGd8xMdKt8VnpfecDKI",
+      url: process.env.QDRANT_URL!,
+      apiKey: process.env.QDRANT_API_KEY!,
       collectionName: `pdf-${paperId}`,
     });
 
@@ -58,7 +57,7 @@ export const GET = async (req: NextRequest) => {
 
 
     const response = await ai.models.generateContent({
-        model: "gemini-2.0-flash",
+        model: "gemini-2.5-flash",
         contents: `${prompt}`,
     });
     const textResponse = response.text;

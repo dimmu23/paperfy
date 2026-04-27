@@ -10,9 +10,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
     const radius = 100; // change this to increase the radius of the hover effect
     const [visible, setVisible] = React.useState(false);
 
-    // eslint-disable-next-line prefer-const
     const mouseX = useMotionValue(0);
-    // eslint-disable-next-line prefer-const  
     const mouseY = useMotionValue(0);
 
     function handleMouseMove({ currentTarget, clientX, clientY }: React.MouseEvent<HTMLDivElement>) {
