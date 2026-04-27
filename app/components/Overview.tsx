@@ -14,7 +14,7 @@ export default function Overview({ paperId}: { paperId: string }) {
     let cancelled = false;
     let timeoutId: NodeJS.Timeout | undefined;
     let retries = 0;
-    const maxRetries = 10;
+    const maxRetries = 20;
 
     const fetchOverview = async () => {
       const cachedOverview = localStorage.getItem(`Markedoverview-${paperId}`);
