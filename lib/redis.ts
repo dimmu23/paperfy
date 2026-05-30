@@ -32,6 +32,7 @@ const getRedisConnectionOptions = (): RedisOptions => {
     password: parsed.password || undefined,
     username: parsed.username || undefined,
     maxRetriesPerRequest: null,
+    enableReadyCheck: false,
     tls: isTls ? {} : undefined,
   };
 };
